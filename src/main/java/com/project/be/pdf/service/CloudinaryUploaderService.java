@@ -21,7 +21,7 @@ public class CloudinaryUploaderService {
     public String upload(MultipartFile file) throws IOException {
         Map params = ObjectUtils.asMap(
                 "public_id", "pdf/" + UUID.randomUUID(), // "pdf" 폴더에 고유 ID로 저장
-                "resource_type", "auto" // 이미지, 비디오, PDF 등 자동 감지
+                "resource_type", "raw"
         );
 
         Map uploadResult = cloudinary.uploader().upload(file.getBytes(), params);

@@ -27,11 +27,13 @@ public class DocumentController {
 
         Document doc = documentService.save(file);
 
-        aiService.requestProcessing(doc.getId(), doc.getOriginalFileUrl());
+        // aiService.requestProcessing(doc.getId(), doc.getOriginalFileUrl()); // AI 연동은 잠시 주석 처리
 
+        // 반환값에 originalFileUrl을 추가합니다.
         return ResponseEntity.ok(Map.of(
                 "documentId", doc.getId(),
-                "status", doc.getStatus().toString()
+                "status", doc.getStatus().toString(),
+                "fileUrl", doc.getOriginalFileUrl() // 생성된 Cloudinary URL
         ));
     }
 
