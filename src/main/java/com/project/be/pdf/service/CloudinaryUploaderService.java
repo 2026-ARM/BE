@@ -5,11 +5,13 @@ import com.cloudinary.utils.ObjectUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
+
 public class CloudinaryUploaderService {
 
     private final Cloudinary cloudinary;
@@ -19,12 +21,32 @@ public class CloudinaryUploaderService {
     }
 
     public String upload(MultipartFile file) throws IOException {
-        Map params = ObjectUtils.asMap(
-                "public_id", "pdf/" + UUID.randomUUID(), // "pdf" 폴더에 고유 ID로 저장
-                "resource_type", "raw"
-        );
 
-        Map uploadResult = cloudinary.uploader().upload(file.getBytes(), params);
-        return uploadResult.get("secure_url").toString();
+        File tempFile = Files.createTempFile(
+                "upload_",
+                "_" + file.getOriginalFilename()
+        ).toFile();
+
+        file.transferTo(tempFile);
+
+        try {
+
+            Map params = ObjectUtils.asMap(
+                    "resource_type", "image",
+                    "use_filename", true,
+                    "unique_filename", true,
+                    "folder", "pdf"
+            );
+
+            Map uploadResult =
+                    cloudinary.uploader().upload(tempFile, params);
+
+            return uploadResult.get("secure_url").toString();
+
+        } finally {
+            if (tempFile.exists()) {
+                tempFile.delete();
+            }
+        }
     }
 }
