@@ -27,7 +27,7 @@ public class DocumentController {
 
         Document doc = documentService.save(file);
 
-        // aiService.requestProcessing(doc.getId(), doc.getOriginalFileUrl()); // AI 연동은 잠시 주석 처리
+        aiService.requestProcessing(doc.getId(), doc.getOriginalFileUrl()); // AI 연동은 잠시 주석 처리
 
         // 반환값에 originalFileUrl을 추가합니다.
         return ResponseEntity.ok(Map.of(
