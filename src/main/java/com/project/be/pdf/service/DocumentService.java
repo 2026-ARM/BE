@@ -34,11 +34,8 @@ public class DocumentService {
         return repository.save(doc);
     }
 
-    public void update(Long id, String processedFileUrl) {
-        repository.findById(id).ifPresent(doc -> {
-            doc.setProcessedFileUrl(processedFileUrl);
-            doc.setStatus(Document.Status.COMPLETED);
-            repository.save(doc);
-        });
+    public Document findById(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Document not found with id: " + id));
     }
 }

@@ -37,9 +37,10 @@ public class DocumentController {
         ));
     }
 
-    @PatchMapping("/{id}")
-    public ResponseEntity<Void> update(@PathVariable Long id, @RequestBody UpdateDto dto) {
-        documentService.update(id, dto.getProcessedFileUrl());
-        return ResponseEntity.ok().build();
+    @GetMapping("/{id}")
+    public ResponseEntity<Document> getDocument(@PathVariable Long id) {
+        Document document = documentService.findById(id);
+        return ResponseEntity.ok(document);
     }
+
 }
