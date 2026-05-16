@@ -10,6 +10,6 @@ import java.util.List;
 @Setter
 @Getter
 @NoArgsConstructor
-public class AiResponseDto {
+public class AiExtractResponseDto {
     private List<String> chunks;
 }

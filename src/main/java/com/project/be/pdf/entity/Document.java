@@ -1,5 +1,6 @@
 package com.project.be.pdf.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -23,6 +24,7 @@ public class Document {
     // 전처리 파일 url (초기엔 null)
     private String processedFileUrl;
 
+    @JsonManagedReference
     @OneToOne(mappedBy = "document", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Summary summary;
 
