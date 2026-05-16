@@ -1,5 +1,6 @@
 package com.project.be.pdf.service;
 
+import com.project.be.pdf.dto.AiResponseDto;
 import com.project.be.pdf.entity.Document;
 import com.project.be.pdf.repository.DocumentRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -7,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.io.IOException;
 import java.util.Map;
 
 @Slf4j
@@ -15,10 +17,14 @@ public class AiService {
 
     private final DocumentRepository documentRepository;
     private final WebClient webClient;
+    private final CloudinaryUploaderService cloudinaryUploaderService;
 
     // WebClient.Builder를 주입받아 AI 서버 주소로 기본 설정된 WebClient를 생성합니다.
-    public AiService(DocumentRepository documentRepository, WebClient.Builder webClientBuilder, @Value("${ai.server.url}") String aiServerUrl) {
+    public AiService(DocumentRepository documentRepository, WebClient.Builder webClientBuilder,
+                     CloudinaryUploaderService cloudinaryUploaderService,
+                     @Value("${ai.server.url}") String aiServerUrl) {
         this.documentRepository = documentRepository;
+        this.cloudinaryUploaderService = cloudinaryUploaderService;
         this.webClient = webClientBuilder.baseUrl(aiServerUrl).build();
     }
 
@@ -43,10 +49,35 @@ public class AiService {
                             "url", fileUrl
                     ))
                     .retrieve() // 응답을 받기 시작
-                    .bodyToMono(Void.class) // 응답 본문은 필요 없으므로 Void로 처리
+                    .bodyToMono(AiResponseDto.class) // 응답을 AiDTO가 받음
                     .subscribe( // ⭐️ 중요: subscribe()를 호출해야 실제 요청이 전송됩니다.
-                            null, // 성공 시 별도 작업 없음
-                            error -> log.error("AI server request failed for document id: {}. Error: {}", id, error.getMessage()) // 실패 시 에러 로그
+                            aiResponse -> {
+                                try {
+                                    log.info("Successfully received chunks for document id: {}", id);
+                                    // 1. chunk들을 하나의 문자열로 합칩니다.
+                                    String combinedText = String.join("\n\n--- (chunk end) ---\n\n", aiResponse.getChunks());
+                                    String txtFilename = "chunked_" + id + ".txt";
+
+                                    // 2. 합쳐진 텍스트를 Cloudinary에 업로드합니다.
+                                    String chunkedFileUrl = cloudinaryUploaderService.upload(combinedText, txtFilename);
+                                    log.info("Uploaded chunked text for document id: {}. URL: {}", id, chunkedFileUrl);
+
+                                    // 3. DB에 최종 처리된 URL과 상태를 업데이트합니다.
+                                    doc.setProcessedFileUrl(chunkedFileUrl);
+                                    doc.setStatus(Document.Status.COMPLETED);
+                                    documentRepository.save(doc);
+                                } catch (IOException e) {
+                                    log.error("Failed to upload chunked text for document id: {}", id, e);
+                                    // 업로드 실패 시 상태를 FAILED로 변경
+                                    doc.setStatus(Document.Status.FAILED);
+                                    documentRepository.save(doc);
+                                }
+                            },
+                            error -> {
+                                log.error("AI server request failed for document id: {}. Error: {}", id, error.getMessage());
+                                doc.setStatus(Document.Status.FAILED);
+                                documentRepository.save(doc);
+                            }
                     );
         });
     }
